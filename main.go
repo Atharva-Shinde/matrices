@@ -8,6 +8,6 @@ import (
 )
 
 func main() {
-	http.HandleFunc("GET /", handler.SubmitHandler)
+	http.HandleFunc("POST /", handler.SubmitHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
