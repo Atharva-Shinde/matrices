@@ -2,10 +2,12 @@
 package handler
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
 	"github.com/atharva-shinde/matrices/internal"
+	"github.com/atharva-shinde/matrices/internal/matrix"
 )
 
 func SubmitHandler(w http.ResponseWriter, r *http.Request) {
@@ -25,4 +27,11 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.(internal.ErrorResponse).Message))
 		return
 	}
+	result := operate(matrices)
+	json.NewEncoder(w).Encode(result)
+}
+
+func operate(o matrix.Operator) matrix.Matrix {
+	result := o.Multiply()
+	return result
 }

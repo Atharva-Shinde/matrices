@@ -13,6 +13,22 @@ type Matrices struct {
 	Matrices [2]Matrix `json:"matrices"`
 }
 
+// Operator is an interface which defines matrix operations
+type Operator interface {
+	Multiply() Matrix
+}
+
+// RowResult is a slice of Entity
+// RowResult represents a single row of the resultant matrix
+type RowResult []Entity
+
+// Entity represents a number in a matrix in position [row][column]
+type Entity struct {
+	num    int
+	row    int
+	column int
+}
+
 // NewMatrix initialises a pointer to Matrix
 func (m Matrices) NewMatrix() *Matrix {
 	rows := m.Matrices[0].Rows
