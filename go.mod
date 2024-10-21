@@ -1,3 +1,3 @@
 module github.com/atharva-shinde/matrices
 
-go 1.22.7
+go 1.22
