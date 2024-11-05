@@ -14,6 +14,8 @@ jobs:
           uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
           with:
             fetch-depth: 0
+        - name: Build the binary
+          run: make binary
         - name: Creating a new Release Tag
           run: |
             RELEASE_ISSUE_TITLE="${{ github.event.issue.title }}"
@@ -59,8 +61,8 @@ jobs:
             make changelog
         - name: Set environment and binary absolute path
           run: |
-            binary_path=./main
-            echo "BIN_PATH=${binary_path}" >> $GITHUB_ENV
+            binary=$(pwd)/bin/api
+            echo "BIN_PATH=${binary}" >> $GITHUB_ENV
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             tag: ${{ github.ref_name }}
