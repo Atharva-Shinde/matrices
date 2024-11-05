@@ -1,0 +1,82 @@
+name: Release
+on: 
+  workflow_dispatch: 
+  issues: 
+    types: opened
+jobs:
+  release:
+      if: startsWith( ${{ github.event.issue.title }}, "🌱" )
+      runs-on: ubuntu-latest
+      permissions:
+        contents: write
+      steps:  
+        - name: Checkout code
+          uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+          with:
+            fetch-depth: 0
+        - name: Creating a new Release Tag
+          run: |
+            RELEASE_ISSUE_TITLE="${{ github.event.issue.title }}"
+            RELEASE_VERSION=$(echo "$RELEASE_ISSUE_TITLE" | grep -o -E "v[0-9]\.[0-9]\.[0-9](-(alpha|beta|ga))*")
+            if [[ -z "$RELEASE_VERSION" ]] ; then 
+                echo "Specify appropriate release version that is SemVer compliant, exiting" ;
+                exit 1 ;
+            else
+              echo $RELEASE_VERSION
+              export RELEASE_VERSION=$RELEASE_VERSION
+            fi
+            if git tag -l | grep -qwE "$RELEASE_VERSION" ; then
+              echo "$RELEASE_VERSION tag already exists" ;
+              exit 1 ;
+            fi
+            git config user.name "${GITHUB_ACTOR}"
+            git config user.email "${GITHUB_ACTOR}@no-reply.com"
+            git tag -a ${RELEASE_VERSION} -m "Adding ${RELEASE_VERSION}"
+            git push origin tag ${RELEASE_VERSION} 
+            echo "Created tag $RELEASE_VERSION"
+            echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
+            echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_OUTPUT
+        - name: Creating a new Release Branch
+          run: |
+            echo "This is the release version $RELEASE_VERSION"
+            if $RELEASE_VERSION | grep -o "(alpha|beta|ga)" ; then
+              if git show-ref "refs/remotes/origin/$RELEASE_VERSION" --verify --quiet ; then
+                echo "$RELEASE_VERSION branch already exists, exiting" ;
+                exit 1 ;
+              fi
+              git checkout -b main
+            else
+              if git show-ref "refs/remotes/origin/$RELEASE_VERSION" --verify --quiet ; then
+                echo "$RELEASE_VERSION branch already exists, exiting" ;
+                exit 1 ;
+              fi
+              #creating a release branch
+              git checkout -b "release-$RELEASE_VERSION"
+              git push origin "release-$RELEASE_VERSION"
+            fi
+        - name: Generate Release Notes
+          run: |
+            make changelog
+        - name: Set environment and binary absolute path
+          run: |
+            binary_path=./main
+            echo "BIN_PATH=${binary_path}" >> $GITHUB_ENV
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            tag: ${{ github.ref_name }}
+        - name: Build Release and Generate Artifacts
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            tag: ${{ github.ref_name }}
+          run: |
+            RELEASE_TAG=$(git describe --abbrev=0 2>/dev/null)
+            export RELEASE_TAG=$RELEASE_TAG
+            if [ -z "${RELEASE_TAG}" ]; then 
+              echo "${RELEASE_TAG} is not set, exiting"; 
+              exit 1;
+            fi
+            gh release create ${RELEASE_TAG} \
+            --title="${GITHUB_REPOSITORY#*/}" \
+            --repo="https://github.com/atharva-shinde/matrices" \
+            --notes-file CHANGELOG/${RELEASE_TAG}.md
+            gh release upload ${RELEASE_TAG} ${{ env.BIN_PATH }} --clobber

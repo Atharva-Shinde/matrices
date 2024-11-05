@@ -1,0 +1,51 @@
+name: Deploy
+on:
+    workflow_dispatch: 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+            fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+            go-version: '1.22'  
+      - name: Build the environment
+        run: |
+          wget https://github.com/openshift/source-to-image/releases/download/v1.4.0/source-to-image-v1.4.0-d3544c7e-linux-386.tar.gz
+          tar -xvf source-to-image-v1.4.0-d3544c7e-linux-386.tar.gz
+          sudo mv s2i /usr/local/bin
+          sudo docker login quay.io -u ${{ secrets.QUAY_USERNAME }} -p ${{ secrets.QUAY_PASSWORD }}
+      - name: Build and Deploy the application on quay.io
+        run: |
+          sudo s2i build https://github.com/atharva-shinde/matrices quay.io/atshinde/matrix-builder-image quay.io/atshinde/matrices
+          sudo docker push quay.io/atshinde/matrices
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Authentication
+        uses: redhat-actions/oc-login@v1
+        env:
+          OPENSHIFT_USER: rh-ee-atshinde
+          OPENSHIFT_NAMESPACE: rh-ee-atshinde-dev
+        with:
+            openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+            openshift_username: ${{ env.OPENSHIFT_USER }}
+            openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+            insecure_skip_tls_verify: false
+            namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+      - name: Deploy application
+        run: |
+            if oc get svc -l app=matrices --ignore-not-found; then
+                oc delete svc,deployment,route,imagestream --selector app=matrices
+                echo "deleted all resources with label app=matrices";
+            fi
+            oc new-app quay.io/atshinde/matrices --name=matrices-${RELEASE-VERSION} --labels=app=matrices,env=dev
+            sleep 3
+            oc expose svc matrices --labels=matrices
+            oc get routes -l app=matrices
+
