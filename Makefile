@@ -1,9 +1,9 @@
 .PHONY: binary
 binary:
 # build a local binary
-	go build -o=./bin/api
+	CGO_ENABLED=0 go build -o=./bin/api
 # build a binary for windows/amd64
-	GOOS=windows GORARCH=amd64 go build -o=./bin/windows_amd64/api
+	CGO_ENABLED=0 GOOS=windows GORARCH=amd64 go build -o=./bin/windows_amd64/api
 
 .PHONY: changelog
 changelog:
