@@ -5,6 +5,10 @@ binary:
 # build a binary for windows/amd64
 	GOOS=windows GORARCH=amd64 go build -o=./bin/windows_amd64/api
 
+.PHONY: changelog
+changelog:
+	@hack/changelog.sh
+
 .PHONY: image
 image:
 	podman build -f Dockerfile -t quay.io/${QUAY}/matrices
