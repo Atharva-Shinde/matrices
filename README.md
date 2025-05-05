@@ -20,7 +20,6 @@ Matrices is a simple RESTful API Application that accepts HTTP JSON POST Request
 - [LICENSE](#license)
 
 
-
 ## Prerequisites:
 1. We will be publishing the application image to [quay.io](https://quay.io) image registry. Export your quay.io username as an environment variable `QUAY`
     
